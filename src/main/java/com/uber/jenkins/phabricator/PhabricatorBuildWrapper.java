@@ -130,9 +130,6 @@ public class PhabricatorBuildWrapper extends BuildWrapper {
             BuildListener listener) throws IOException, InterruptedException {
         EnvVars environment = build.getEnvironment(listener);
         Logger logger = new Logger(listener.getLogger());
-        if (environment == null) {
-            return this.ignoreBuild(logger, "No environment variables found?!");
-        }
 
         final Map<String, String> envAdditions = new HashMap<String, String>();
 
@@ -144,11 +141,16 @@ public class PhabricatorBuildWrapper extends BuildWrapper {
             return new Environment() { };
         }
 
+        FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            return this.ignoreBuild(logger, "No workspace found.");
+        }
+
         FilePath arcWorkPath;
         if (this.workDir != null && this.workDir.length() > 0) {
-            arcWorkPath = build.getWorkspace().child(workDir);
+            arcWorkPath = workspace.child(workDir);
         } else {
-            arcWorkPath = build.getWorkspace();
+            arcWorkPath = workspace;
         }
         LauncherFactory starter = new LauncherFactory(launcher, environment, listener.getLogger(), arcWorkPath);
 

@@ -93,6 +93,6 @@ public class RemoteFileFetcher {
             } catch (IOException e) { /* ignore */ }
         }
 
-        return new String(buffer);
+        return new String(buffer, java.nio.charset.StandardCharsets.UTF_8);
     }
 }

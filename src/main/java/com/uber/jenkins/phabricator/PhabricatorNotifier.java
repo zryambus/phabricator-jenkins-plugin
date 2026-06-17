@@ -337,11 +337,9 @@ public class PhabricatorNotifier extends Notifier implements SimpleBuildStep {
             Run<?, ?> build, FilePath workspace,
             TaskListener listener,
             Set<String> includeFiles) {
-        Result buildResult;
-        if (build.getResult() == null) {
+        Result buildResult = build.getResult();
+        if (buildResult == null) {
             buildResult = Result.SUCCESS;
-        } else {
-            buildResult = build.getResult();
         }
         if (!buildResult.isBetterOrEqualTo(Result.UNSTABLE)) {
             return null;
@@ -407,7 +405,12 @@ public class PhabricatorNotifier extends Notifier implements SimpleBuildStep {
 
     private void cleanupCoverageFilesOnJenkinsMaster(Run<?, ?> build) {
         for (File report : getCoverageReports(build)) {
-            report.delete();
+            // noinspection ResultOfMethodCallIgnored
+            boolean deleted = report.delete();
+            if (!deleted) {
+                Logger logger = new Logger(System.err);
+                logger.warn(COVERAGE_TAG, "Failed to delete: " + report.getName());
+            }
         }
     }
 

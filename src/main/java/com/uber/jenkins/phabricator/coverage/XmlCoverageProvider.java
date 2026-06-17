@@ -125,7 +125,7 @@ public class XmlCoverageProvider extends CoverageProvider {
     private static Long getLongValue(NamedNodeMap attrs, String attr) {
         String content = attrs.getNamedItem(attr).getTextContent();
         try {
-            return Math.round(Double.valueOf(content));
+            return Long.parseLong(content);
         } catch (NumberFormatException e) {
             throw new IllegalStateException(content + " is not a valid coverage number", e);
         }
@@ -134,7 +134,7 @@ public class XmlCoverageProvider extends CoverageProvider {
     private static Integer getIntValue(NamedNodeMap attrs, String attr) {
         String content = attrs.getNamedItem(attr).getTextContent();
         try {
-            return Math.round(Float.valueOf(content));
+            return Integer.parseInt(content);
         } catch (NumberFormatException e) {
             throw new IllegalStateException(content + " is not a valid coverage number", e);
         }
@@ -143,7 +143,7 @@ public class XmlCoverageProvider extends CoverageProvider {
     private static Float getFloatValue(NamedNodeMap attrs, String attr) {
         String content = attrs.getNamedItem(attr).getTextContent();
         try {
-            return Float.valueOf(content);
+            return Float.parseFloat(content);
         } catch (NumberFormatException e) {
             throw new IllegalStateException(content + " is not a valid coverage number", e);
         }
@@ -422,8 +422,8 @@ public class XmlCoverageProvider extends CoverageProvider {
                     continue;
                 }
                 NamedNodeMap attrs = node.getAttributes();
-                long covered = Long.valueOf(attrs.getNamedItem("covered").getTextContent());
-                long missed = Long.valueOf(attrs.getNamedItem("missed").getTextContent());
+                long covered = Long.parseLong(attrs.getNamedItem("covered").getTextContent());
+                long missed = Long.parseLong(attrs.getNamedItem("missed").getTextContent());
                 switch (attrs.getNamedItem("type").getTextContent()) {
                     case "CLASS":
                         cc.cls.covered += covered;

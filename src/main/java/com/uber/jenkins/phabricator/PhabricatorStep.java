@@ -216,7 +216,6 @@ public class PhabricatorStep extends Step {
             FilePath workspace = getContext().get(FilePath.class);
             TaskListener listener = getContext().get(TaskListener.class);
             Launcher launcher = getContext().get(Launcher.class);
-            EnvVars envVars = getContext().get(EnvVars.class);
 
             PhabricatorNotifier notifier = new PhabricatorNotifier(
                     step.commentOnSuccess,

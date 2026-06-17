@@ -164,9 +164,9 @@ class CommentBuilder {
             comment.append("\n\n");
         }
         if (preserveFormatting) {
-            comment.append(String.format("%s\n", customComment));
+            comment.append(String.format("%s%n", customComment));
         } else {
-            comment.append(String.format("```\n%s\n```\n\n", customComment));
+            comment.append(String.format("```%n%s%n```%n%n", customComment));
         }
     }
 
@@ -183,14 +183,14 @@ class CommentBuilder {
      * Add a build link to the comment
      */
     void addBuildLink() {
-        comment.append(String.format("\nSee %s for more details.", buildURL));
+        comment.append(String.format("%nSee %s for more details.", buildURL));
     }
 
     /**
      * Add a build failure message to the comment
      */
     void addBuildFailureMessage() {
-        comment.append(String.format("\n\nLink to build: %s", buildURL));
-        comment.append(String.format("\nSee console output for more information: %sconsole", buildURL));
+        comment.append(String.format("%n%nLink to build: %s", buildURL));
+        comment.append(String.format("%nSee console output for more information: %sconsole", buildURL));
     }
 }

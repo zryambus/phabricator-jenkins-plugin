@@ -49,7 +49,7 @@ public class ConduitCredentialsImpl extends BaseStandardCredentials implements C
     @DataBoundConstructor
     public ConduitCredentialsImpl(
             @CheckForNull String id,
-            @NonNull @CheckForNull String url,
+            @NonNull String url,
             @Nullable String gateway,
             @CheckForNull String description,
             @CheckForNull String token) {

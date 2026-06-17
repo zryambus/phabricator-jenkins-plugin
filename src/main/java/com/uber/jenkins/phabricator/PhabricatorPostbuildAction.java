@@ -31,10 +31,10 @@ public class PhabricatorPostbuildAction implements BuildBadgeAction {
 
     private final String iconPath;
     private final String text;
-    private final String color = "#1FBAD6";
-    private final String background = "transparent";
-    private final String border = "0";
-    private final String borderColor = "transparent";
+    private static final String COLOR = "#1FBAD6";
+    private static final String BACKGROUND = "transparent";
+    private static final String BORDER = "0";
+    private static final String BORDER_COLOR = "transparent";
     private final String link;
 
     private PhabricatorPostbuildAction(String text, String link) {
@@ -77,22 +77,22 @@ public class PhabricatorPostbuildAction implements BuildBadgeAction {
 
     @Exported
     public String getColor() {
-        return color;
+        return COLOR;
     }
 
     @Exported
     public String getBackground() {
-        return background;
+        return BACKGROUND;
     }
 
     @Exported
     public String getBorder() {
-        return border;
+        return BORDER;
     }
 
     @Exported
     public String getBorderColor() {
-        return borderColor;
+        return BORDER_COLOR;
     }
 
     @Exported
