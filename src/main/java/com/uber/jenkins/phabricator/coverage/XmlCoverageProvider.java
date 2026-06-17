@@ -125,7 +125,7 @@ public class XmlCoverageProvider extends CoverageProvider {
     private static Long getLongValue(NamedNodeMap attrs, String attr) {
         String content = attrs.getNamedItem(attr).getTextContent();
         try {
-            return Long.parseLong(content);
+            return Math.round(Double.parseDouble(content));
         } catch (NumberFormatException e) {
             throw new IllegalStateException(content + " is not a valid coverage number", e);
         }
@@ -134,7 +134,7 @@ public class XmlCoverageProvider extends CoverageProvider {
     private static Integer getIntValue(NamedNodeMap attrs, String attr) {
         String content = attrs.getNamedItem(attr).getTextContent();
         try {
-            return Integer.parseInt(content);
+            return Math.round(Float.parseFloat(content));
         } catch (NumberFormatException e) {
             throw new IllegalStateException(content + " is not a valid coverage number", e);
         }
