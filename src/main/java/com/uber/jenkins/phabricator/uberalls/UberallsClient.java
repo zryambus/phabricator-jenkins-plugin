@@ -24,10 +24,7 @@ import com.uber.jenkins.phabricator.coverage.CodeCoverageMetrics;
 import com.uber.jenkins.phabricator.utils.CommonUtils;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import net.sf.json.JSON;
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
-import net.sf.json.groovy.JsonSlurper;
+import org.json.JSONObject;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
@@ -80,12 +77,11 @@ public class UberallsClient {
         }
         try {
             String coverageJSON = getCoverage(sha);
-            JsonSlurper jsonParser = new JsonSlurper();
-            JSON responseJSON = jsonParser.parseText(coverageJSON);
-            if (responseJSON instanceof JSONNull) {
+            JSONObject responseJSON = new JSONObject(coverageJSON);
+            if (responseJSON.length() == 0) {
                 return null;
             }
-            JSONObject coverage = (JSONObject) responseJSON;
+            JSONObject coverage = responseJSON;
 
             return new CodeCoverageMetrics(
                     ((Double) coverage.getDouble(PACKAGE_COVERAGE_KEY)).floatValue(),

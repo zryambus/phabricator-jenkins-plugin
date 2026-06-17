@@ -20,7 +20,7 @@
 
 package com.uber.jenkins.phabricator.unit;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 public class UnitResult {
 
@@ -66,12 +66,13 @@ public class UnitResult {
     }
 
     public JSONObject toHarbormaster() {
-        return new JSONObject()
-                .element("name", name)
-                .element("result", getHarbormasterResult())
-                .element("namespace", className)
-                .element("details", stackTrace)
-                .element("engine", ENGINE_NAME)
-                .element("duration", duration);
+        JSONObject json = new JSONObject();
+        json.put("name", name);
+        json.put("result", getHarbormasterResult());
+        json.put("namespace", className);
+        json.put("details", stackTrace);
+        json.put("engine", ENGINE_NAME);
+        json.put("duration", duration);
+        return json;
     }
 }

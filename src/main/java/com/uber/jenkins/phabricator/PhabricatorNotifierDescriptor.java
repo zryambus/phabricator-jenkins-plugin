@@ -42,8 +42,7 @@ import jenkins.model.Jenkins;
  * The class is marked as public so that it can be accessed from views.
  *
  * <p>
- * See <tt>src/main/resources/hudson/plugins/hello_world/PhabricatorNotifier/*.jelly</tt>
- * for the actual HTML fragment for the configuration screen.
+ * See <a href="src/main/resources/hudson/plugins/hello_world/PhabricatorNotifier/*.jelly">the actual HTML fragment</a> for the configuration screen.
  */
 @SuppressWarnings("UnusedDeclaration")
 @Extension

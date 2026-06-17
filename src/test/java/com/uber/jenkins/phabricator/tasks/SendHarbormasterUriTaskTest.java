@@ -22,8 +22,7 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 

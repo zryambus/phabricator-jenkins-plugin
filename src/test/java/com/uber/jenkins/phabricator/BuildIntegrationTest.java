@@ -25,13 +25,12 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIClientTest;
 import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.StringBuilder;
@@ -110,7 +109,7 @@ public abstract class BuildIntegrationTest {
         if (sendMessageResponse != null) {
             responses.put("harbormaster.sendmessage", sendMessageResponse);
         }
-        responses.put("differential.getcommitmessage", new JSONObject().element("result", "commit message"));
+        responses.put("differential.getcommitmessage", new JSONObject().put("result", "commit message"));
         conduit = new FakeConduit(responses);
 
         TestUtils.addValidCredentials(conduit);
@@ -120,6 +119,10 @@ public abstract class BuildIntegrationTest {
         TestUtils.setDefaultBuildEnvironment(j, harbormaster);
 
         return p.scheduleBuild2(0).get();
+    }
+
+    protected JSONObject emptyJSONResponse() {
+        return new JSONObject();
     }
 
     protected FreeStyleBuild buildWithCommit(JSONObject sendMessageResponse) throws Exception {

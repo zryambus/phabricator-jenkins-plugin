@@ -22,10 +22,9 @@ package com.uber.jenkins.phabricator.conduit;
 
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
 import org.apache.http.HttpStatus;
 import org.apache.http.localserver.LocalServerTestBase;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +76,7 @@ public class ConduitAPIClientTest extends LocalServerTestBase {
     @Test
     public void testWithParams() throws UnsupportedEncodingException, ConduitAPIException {
         client = new ConduitAPIClient("http://foo.bar", TestUtils.TEST_CONDUIT_TOKEN);
-        JSONObject params = new JSONObject().element("hello", "world");
+        JSONObject params = new JSONObject();
         params.put("hello", "world");
         client.createRequest("action", params);
     }
@@ -88,7 +87,7 @@ public class ConduitAPIClientTest extends LocalServerTestBase {
         this.start();
 
         client = new ConduitAPIClient(getTestServerAddress(), TestUtils.TEST_CONDUIT_TOKEN);
-        JSONObject utf8Params = new JSONObject().element("message", "こんにちは世界");
+        JSONObject utf8Params = new JSONObject().put("message", "こんにちは世界");
         client.perform("utf8", utf8Params);
     }
 

@@ -25,9 +25,8 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.conduit.Differential;
 import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.coverage.CodeCoverageMetrics;
+import com.uber.jenkins.phabricator.coverage.CoveragePluginCoverageProvider;
 import com.uber.jenkins.phabricator.coverage.CoverageProvider;
-import com.uber.jenkins.phabricator.coverage.CoberturaPluginCoverageProvider;
-import com.uber.jenkins.phabricator.coverage.JacocoPluginCoverageProvider;
 import com.uber.jenkins.phabricator.coverage.XmlCoverageProvider;
 import com.uber.jenkins.phabricator.credentials.ConduitCredentials;
 import com.uber.jenkins.phabricator.provider.InstanceProvider;
@@ -39,9 +38,9 @@ import com.uber.jenkins.phabricator.unit.UnitTestProvider;
 import com.uber.jenkins.phabricator.utils.CommonUtils;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import hudson.plugins.cobertura.CoberturaBuildAction;
-import hudson.plugins.jacoco.JacocoBuildAction;
+import io.jenkins.plugins.coverage.metrics.steps.CoverageBuildAction;
 import jenkins.model.Jenkins;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -66,6 +65,7 @@ import jenkins.model.CauseOfInterruption;
 import jenkins.model.InterruptedBuildAction;
 import jenkins.tasks.SimpleBuildStep;
 
+@Symbol("phabricatorNotifier")
 public class PhabricatorNotifier extends Notifier implements SimpleBuildStep {
 
     private static final String DEFAULT_XML_COVERAGE_REPORT_PATTERN = "**/coverage*.xml, **/cobertura*.xml, "
@@ -198,6 +198,10 @@ public class PhabricatorNotifier extends Notifier implements SimpleBuildStep {
             whichBuildUrl = environment.get("RUN_DISPLAY_URL");
         } else {
             whichBuildUrl = environment.get("BUILD_URL");
+        }
+
+        if (CommonUtils.isBlank(whichBuildUrl)) {
+            whichBuildUrl = build.getUrl();
         }
 
         // Still do finalization to prevent manipulation
@@ -348,22 +352,18 @@ public class PhabricatorNotifier extends Notifier implements SimpleBuildStep {
         CoverageProvider coverageProvider = null;
         Logger logger = new Logger(listener.getLogger());
 
-        // First check if any coverage plugins are applied. These take precedence over other providers
-        // Only one coverage plugin provider is supported per build
-        if (Jenkins.getInstance().getPlugin("cobertura") != null) {
-            CoberturaBuildAction coberturaBuildAction = build.getAction(CoberturaBuildAction.class);
-            if (coberturaBuildAction != null) { // Choose only a single coverage provider
-                logger.info(UBERALLS_TAG, "Using coverage metrics from Cobertura Jenkins Plugin");
-                coverageProvider = new CoberturaPluginCoverageProvider(getCoverageReports(build), includeFiles, coberturaBuildAction);
+        // Check if the coverage plugin is applied. It takes precedence over other providers
+        if (Jenkins.getInstance().getPlugin("coverage") != null) {
+            logger.info(UBERALLS_TAG, "Jenkins Coverage Plugin detected");
+            CoverageBuildAction coverageBuildAction = build.getAction(CoverageBuildAction.class);
+            if (coverageBuildAction != null) {
+                logger.info(UBERALLS_TAG, "Using coverage metrics from Jenkins Coverage Plugin");
+                coverageProvider = new CoveragePluginCoverageProvider(getCoverageReports(build), includeFiles, coverageBuildAction);
+            } else {
+                logger.info(UBERALLS_TAG, "No CoverageBuildAction found on build, falling back to XML parsing");
             }
-        }
-
-        if (coverageProvider == null && Jenkins.getInstance().getPlugin("jacoco") != null) {
-            JacocoBuildAction jacocoBuildAction = build.getAction(JacocoBuildAction.class);
-            if (jacocoBuildAction != null) {
-                logger.info(UBERALLS_TAG, "Using coverage metrics from Jacoco Jenkins Plugin");
-                coverageProvider = new JacocoPluginCoverageProvider(getCoverageReports(build), includeFiles, jacocoBuildAction);
-            }
+        } else {
+            logger.info(UBERALLS_TAG, "Jenkins Coverage Plugin not installed");
         }
 
         if (coverageProvider == null) {

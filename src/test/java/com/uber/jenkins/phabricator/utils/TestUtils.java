@@ -29,13 +29,11 @@ import com.uber.jenkins.phabricator.PhabricatorPlugin;
 import com.uber.jenkins.phabricator.conduit.ConduitAPIClient;
 import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.coverage.CodeCoverageMetrics;
+import com.uber.jenkins.phabricator.coverage.XmlCoverageProvider;
 import com.uber.jenkins.phabricator.credentials.ConduitCredentials;
 import com.uber.jenkins.phabricator.credentials.ConduitCredentialsImpl;
 import com.uber.jenkins.phabricator.uberalls.UberallsClient;
 import com.uber.jenkins.phabricator.unit.UnitResult;
-
-import net.sf.json.JSONObject;
-import net.sf.json.groovy.JsonSlurper;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -59,6 +57,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -71,12 +70,20 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.tasks.Publisher;
 import hudson.tasks.junit.JUnitResultArchiver;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.ArgumentMatchers.anyString;
+
+import org.apache.commons.io.FileUtils;
+
+import org.json.JSONObject;
+
+import org.apache.commons.io.IOUtils;
 
 public class TestUtils {
 
@@ -169,11 +176,11 @@ public class TestUtils {
 
     public static JSONObject getJSONFromFile(Class klass, String filename) throws IOException {
         InputStream in = klass.getResourceAsStream(String.format("%s.json", filename));
-        return slurpFromInputStream(in);
+        return new JSONObject(IOUtils.toString(in, Charset.defaultCharset()));
     }
 
     private static JSONObject slurpFromInputStream(InputStream in) throws IOException {
-        return (JSONObject) new JsonSlurper().parse(in);
+        return new JSONObject(IOUtils.toString(in, Charset.defaultCharset()));
     }
 
     public static HttpRequestHandler makeHttpHandler(final int statusCode, final String body) {
@@ -308,6 +315,27 @@ public class TestUtils {
             public boolean perform(AbstractBuild build, Launcher launcher, BuildListener buildListener) throws
                     InterruptedException, IOException {
                 build.getWorkspace().child(fileName).copyFrom(resourceClass.getResourceAsStream(resourceName));
+                return true;
+            }
+        });
+    }
+
+    public static void addUnitTests(FreeStyleProject p) {
+        // Create JUnit XML file in workspace using TestBuilder pattern
+        p.getBuildersList().add(new TestBuilder() {
+            @Override
+            public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+                java.io.File f = new java.io.File(build.getWorkspace() + "/junit-test.xml");
+                if (!f.getParentFile().exists()) {
+                    f.getParentFile().mkdirs();
+                }
+                if (!f.exists()) {
+                    try {
+                        f.createNewFile();
+                    } catch (IOException e) {
+                        // Ignore
+                    }
+                }
                 return true;
             }
         });

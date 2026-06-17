@@ -3,7 +3,7 @@ package com.uber.jenkins.phabricator.conduit;
 import com.uber.jenkins.phabricator.lint.LintResults;
 import com.uber.jenkins.phabricator.unit.UnitResults;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,36 +46,36 @@ public class HarbormasterClient {
             Map<String, String> coverage,
             LintResults lintResults) throws ConduitAPIException, IOException {
 
-        List<JSONObject> unit = new ArrayList<JSONObject>();
+        List<JSONObject> unit = new ArrayList<>();
 
         if (unitResults != null) {
             unit.addAll(unitResults.toHarbormaster());
         }
 
-        List<JSONObject> lint = new ArrayList<JSONObject>();
+        List<JSONObject> lint = new ArrayList<>();
 
         if (lintResults != null) {
             lint.addAll(lintResults.toHarbormaster());
         }
 
         if (coverage != null) {
-            JSONObject coverageUnit = new JSONObject()
-                    .element("result", "pass")
-                    .element("name", "Coverage Data")
-                    .element("coverage", coverage);
+            JSONObject coverageUnit = new JSONObject();
+            coverageUnit.put("result", "pass");
+            coverageUnit.put("name", "Coverage Data");
+            coverageUnit.put("coverage", coverage);
             unit.add(coverageUnit);
         }
 
         JSONObject params = new JSONObject();
-        params.element("type", messageType.name())
-                .element("buildTargetPHID", phid);
+        params.put("type", messageType.name());
+        params.put("buildTargetPHID", phid);
 
         if (!unit.isEmpty()) {
-            params.element("unit", unit);
+            params.put("unit", unit);
         }
 
         if (!lint.isEmpty()) {
-            params.element("lint", lint);
+            params.put("lint", lint);
         }
 
         return conduit.perform("harbormaster.sendmessage", params);
@@ -92,15 +92,15 @@ public class HarbormasterClient {
      */
     public JSONObject sendHarbormasterUri(String phid, String buildUri) throws ConduitAPIException, IOException {
         JSONObject artifactData = new JSONObject();
-        artifactData = artifactData.element("uri", buildUri)
-                .element("name", "Jenkins")
-                .element("ui.external", true);
+        artifactData.put("uri", buildUri);
+        artifactData.put("name", "Jenkins");
+        artifactData.put("ui.external", true);
 
         JSONObject params = new JSONObject();
-        params.element("buildTargetPHID", phid)
-                .element("artifactKey", "jenkins.uri")
-                .element("artifactType", "uri")
-                .element("artifactData", artifactData);
+        params.put("buildTargetPHID", phid);
+        params.put("artifactKey", "jenkins.uri");
+        params.put("artifactType", "uri");
+        params.put("artifactData", artifactData);
 
         return conduit.perform("harbormaster.createartifact", params);
     }

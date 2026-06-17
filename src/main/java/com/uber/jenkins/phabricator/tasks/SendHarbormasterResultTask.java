@@ -7,8 +7,7 @@ import com.uber.jenkins.phabricator.lint.LintResults;
 import com.uber.jenkins.phabricator.unit.UnitResults;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Map;
@@ -91,13 +90,15 @@ public class SendHarbormasterResultTask extends Task {
         JSONObject result = diffClient.sendHarbormasterMessage(phid, messageType, unitResults, coverage,
                 lintResults);
 
-        if (result.containsKey("error_info") && !(result.get("error_info") instanceof JSONNull)) {
-            info(String.format("Error from Harbormaster: %s", result.getString("error_info")));
-            failTask();
-            return false;
-        } else {
-            this.result = Result.SUCCESS;
+        if (result.has("error_info") && !result.isNull("error_info")) {
+            String errorInfo = result.optString("error_info", null);
+            if (errorInfo != null && !"null".equals(errorInfo)) {
+                info(String.format("Error from Harbormaster: %s", errorInfo));
+                failTask();
+                return false;
+            }
         }
+        this.result = Result.SUCCESS;
         return true;
     }
 

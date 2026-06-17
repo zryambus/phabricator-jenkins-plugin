@@ -22,8 +22,7 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -54,12 +53,15 @@ public class SendHarbormasterUriTask extends Task {
     protected void execute() {
         try {
             JSONObject result = diffClient.sendHarbormasterUri(phid, buildUri);
-            if (result.containsKey("error_info") && !(result.get("error_info") instanceof JSONNull)) {
-                info(String.format("Harbormaster declined URI artifact: %s", result.getString("error_info")));
-                this.result = Result.FAILURE;
-            } else {
-                this.result = Result.SUCCESS;
+            if (result.has("error_info") && !result.isNull("error_info")) {
+                String errorInfo = result.optString("error_info", null);
+                if (errorInfo != null && !"null".equals(errorInfo)) {
+                    info(String.format("Harbormaster declined URI artifact: %s", errorInfo));
+                    this.result = Result.FAILURE;
+                    return;
+                }
             }
+            this.result = Result.SUCCESS;
         } catch (ConduitAPIException e) {
             printStackTrace(e);
             this.result = Result.FAILURE;

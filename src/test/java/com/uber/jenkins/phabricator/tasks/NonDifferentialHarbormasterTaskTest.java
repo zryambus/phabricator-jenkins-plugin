@@ -24,8 +24,7 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIClient;
 import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,8 +33,8 @@ import java.io.IOException;
 import hudson.model.Result;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

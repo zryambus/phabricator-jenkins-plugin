@@ -25,13 +25,13 @@ import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.utils.Logger;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 

@@ -20,9 +20,6 @@
 
 package com.uber.jenkins.phabricator.conduit;
 
-import net.sf.json.JSONObject;
-import net.sf.json.groovy.JsonSlurper;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -34,16 +31,18 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+
+import java.io.UnsupportedEncodingException;
 
 public class ConduitAPIClient {
 
@@ -84,8 +83,7 @@ public class ConduitAPIClient {
             throw new ConduitAPIException(IOUtils.toString(responseBody, Charset.defaultCharset()), responseCode);
         }
 
-        JsonSlurper jsonParser = new JsonSlurper();
-        return (JSONObject) jsonParser.parse(responseBody);
+        return new JSONObject(IOUtils.toString(responseBody, Charset.defaultCharset()));
     }
 
     /**
@@ -94,11 +92,9 @@ public class ConduitAPIClient {
      * @param action The name of the Conduit method
      * @param params The data to be sent to the Conduit method
      * @return The request to perform
-     * @throws UnsupportedEncodingException when the POST data can't be encoded
      * @throws ConduitAPIException when the conduit URL is misconfigured
      */
-    public HttpUriRequest createRequest(String action, JSONObject params) throws UnsupportedEncodingException,
-            ConduitAPIException {
+    public HttpUriRequest createRequest(String action, JSONObject params) throws ConduitAPIException {
         HttpPost post;
         try {
             post = new HttpPost(
@@ -117,8 +113,12 @@ public class ConduitAPIClient {
         List<NameValuePair> formData = new ArrayList<NameValuePair>();
         formData.add(new BasicNameValuePair("params", params.toString()));
 
-        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formData, "UTF-8");
-        post.setEntity(entity);
+        try {
+            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formData, "UTF-8");
+            post.setEntity(entity);
+        } catch (UnsupportedEncodingException e) {
+            throw new ConduitAPIException(e.getMessage());
+        }
 
         return post;
     }

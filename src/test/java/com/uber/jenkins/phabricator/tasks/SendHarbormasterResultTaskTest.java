@@ -5,7 +5,7 @@ import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.conduit.HarbormasterClient.MessageType;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -89,6 +89,8 @@ public class SendHarbormasterResultTaskTest {
     }
 
     private JSONObject getErrorResponse() {
-        return new JSONObject().element("error_info", "i'm having a bad day");
+        JSONObject response = new JSONObject();
+        response.put("error_info", "i'm having a bad day");
+        return response;
     }
 }

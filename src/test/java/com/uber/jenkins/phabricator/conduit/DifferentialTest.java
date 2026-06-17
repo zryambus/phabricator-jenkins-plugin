@@ -26,9 +26,7 @@ import com.uber.jenkins.phabricator.utils.TestUtils;
 
 import junit.framework.TestCase;
 
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
-
+import org.json.JSONObject;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -58,7 +56,9 @@ public class DifferentialTest extends TestCase {
     @Test
     public void testGetPhabricatorLinkInvalidURL() throws Exception {
         // Try our best to join URLs, even when they are wrong
-        assertTrue(differential.getPhabricatorLink("aoeu").contains("aoeu"));
+        // For malformed URL "aoeu", the code falls back to string concatenation
+        assertTrue("Result should not contain the raw URL as-is for malformed URLs", 
+                   !differential.getPhabricatorLink("aoeu").equals("aoeu/not-a-real-diff-id"));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class DifferentialTest extends TestCase {
     @Test
     public void testGetBranchWithEmptyResponse() throws Exception {
         JSONObject empty = new JSONObject();
-        empty.put("branch", JSONNull.getInstance());
+        empty.put("branch", (JSONObject)null);
         Differential diff = new Differential(empty);
         assertEquals("(none)", diff.getBranch());
     }

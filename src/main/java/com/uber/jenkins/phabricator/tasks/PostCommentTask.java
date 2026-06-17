@@ -24,8 +24,7 @@ import com.uber.jenkins.phabricator.conduit.ConduitAPIException;
 import com.uber.jenkins.phabricator.conduit.DifferentialClient;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -85,14 +84,11 @@ public class PostCommentTask extends Task {
     protected void execute() {
         JSONObject postDifferentialCommentResult = postDifferentialComment(comment, SILENT,
                 commentAction);
-        if (postDifferentialCommentResult == null ||
-                !(postDifferentialCommentResult.get("error_info") instanceof JSONNull)) {
-            if (postDifferentialCommentResult != null) {
-                info(String.format("Got error %s with action %s",
-                        postDifferentialCommentResult.get("error_info"), commentAction));
-            }
-
-            info("Re-trying with action 'none'");
+        boolean isFailure = postDifferentialCommentResult == null ||
+                !postDifferentialCommentResult.has("error_info") ||
+                postDifferentialCommentResult.opt("error_info") == null;
+        if (isFailure) {
+            info("Error posting comment, re-trying with action 'none'");
             postDifferentialComment(comment, SILENT, DEFAULT_COMMENT_ACTION);
         }
     }

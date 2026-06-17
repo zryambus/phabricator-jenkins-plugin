@@ -20,9 +20,11 @@
 
 package com.uber.jenkins.phabricator.lint;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -32,17 +34,13 @@ public class LintResultTest {
     @Test
     public void testToHarbormaster() {
         LintResult results = new LintResult("name", "code", "severity", "path", 1, 2, "description");
-        assertEquals(7, results.toHarbormaster().size());
+        assertEquals(7, Iterators.size(results.toHarbormaster().keys()));
     }
 
     @Test
     public void testFromJsonObject() {
         LintResult results = LintResult.fromJsonObject(
-                JSONObject.fromObject(
-                        "{ \"name\": \"NewApi\"," +
-                                "\"code\": \"_code\"," +
-                                "\"severity\": \"error\", " +
-                                "\"path\": \"foobar.java\"}"));
+                new JSONObject("{ \"name\": \"NewApi\",\"code\": \"_code\",\"severity\": \"error\", \"path\": \"foobar.java\"}"));
         assertEquals(results.name, "NewApi");
         assertEquals(results.code, "_code");
         assertEquals(results.severity, "error");

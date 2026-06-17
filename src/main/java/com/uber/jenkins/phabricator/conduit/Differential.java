@@ -23,12 +23,11 @@ package com.uber.jenkins.phabricator.conduit;
 import com.uber.jenkins.phabricator.PhabricatorPostbuildAction;
 import com.uber.jenkins.phabricator.PhabricatorPostbuildSummaryAction;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -47,18 +46,32 @@ public class Differential {
     }
 
     public String getDiffID() {
-        String rawDiffId = (String) rawJSON.get("id");
-        if (rawDiffId == null || rawDiffId.equals("")) {
+        if (!rawJSON.has("id")) {
             return null;
         }
-        return rawDiffId;
+        Object rawDiffId = rawJSON.opt("id");
+        if (rawDiffId == null || rawDiffId == JSONObject.NULL) {
+            return null;
+        }
+        String diffId = rawDiffId.toString();
+        if (diffId.isEmpty()) {
+            return null;
+        }
+        return diffId;
     }
 
     public String getRevisionID(boolean formatted) {
-        Object rawRevisionIdObj = rawJSON.get("revisionID");
-        String rawRevisionId = rawRevisionIdObj != null && !(rawRevisionIdObj instanceof net.sf.json.JSONNull) ? (String) rawRevisionIdObj : null;
-        if (rawRevisionId == null || rawRevisionId.equals("")) {
-            return null;
+        if (!rawJSON.has("revisionID")) {
+            return "";
+        }
+        Object rawRevisionIdObj = rawJSON.opt("revisionID");
+        String rawRevisionId;
+        if (rawRevisionIdObj == null || rawRevisionIdObj == JSONObject.NULL) {
+            return "";
+        }
+        rawRevisionId = rawRevisionIdObj.toString();
+        if (rawRevisionId.isEmpty()) {
+            return "";
         }
         if (formatted) {
             return String.format("D%s", rawRevisionId);
@@ -69,9 +82,9 @@ public class Differential {
     public String getPhabricatorLink(String phabricatorURL) {
         String revisionID = getRevisionID(true);
         try {
-            URL base = new URL(phabricatorURL);
-            return new URL(base, revisionID).toString();
-        } catch (MalformedURLException e) {
+            URI base = URI.create(phabricatorURL);
+            return base.resolve(revisionID).toString();
+        } catch (IllegalArgumentException e) {
             return String.format("%s%s", phabricatorURL, revisionID);
         }
     }
@@ -114,13 +127,15 @@ public class Differential {
         return orElse;
     }
 
-    /**
-     * Return the base commit of the diff
-     *
-     * @return the base revision for git
-     */
     public String getBaseCommit() {
-        return (String) rawJSON.get("sourceControlBaseRevision");
+        Object baseCommit = rawJSON.get("sourceControlBaseRevision");
+        String commit = "(none)";
+        if (baseCommit instanceof String) {
+            commit = baseCommit.toString();
+        } else if (baseCommit != null) {
+            commit = baseCommit.toString();
+        }
+        return commit;
     }
 
     /**
@@ -129,15 +144,19 @@ public class Differential {
      * @return the name of the branch, or unknown
      */
     public String getBranch() {
-        Object branchName = rawJSON.get("branch");
-        if (branchName instanceof JSONNull) {
+        Object branchName = rawJSON.opt("branch");
+        String branch;
+        if (branchName == null || branchName == JSONObject.NULL) {
+            branch = "(none)";
+        } else if (branchName instanceof String) {
+            branch = branchName.toString();
+        } else {
+            branch = "(unknown)";
+        }
+        if (branch.isEmpty()) {
             return "(none)";
         }
-        try {
-            return (String) branchName;
-        } catch (ClassCastException e) {
-            return "(unknown)";
-        }
+        return branch;
     }
 
     /**
@@ -166,7 +185,7 @@ public class Differential {
     public Set<String> getChangedFiles() {
         Set<String> changedFiles = new HashSet<String>();
         JSONArray changes = rawJSON.getJSONArray("changes");
-        for (int i = 0; i < changes.size(); i++) {
+        for (int i = 0; i < changes.length(); i++) {
             JSONObject change = changes.getJSONObject(i);
             String file = (String) change.get("currentPath");
             if (file != null) {

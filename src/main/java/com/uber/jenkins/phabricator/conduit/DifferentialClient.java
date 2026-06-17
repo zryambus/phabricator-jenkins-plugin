@@ -24,8 +24,8 @@ import com.uber.jenkins.phabricator.conduit.HarbormasterClient.MessageType;
 import com.uber.jenkins.phabricator.lint.LintResults;
 import com.uber.jenkins.phabricator.unit.UnitResults;
 
-import net.sf.json.JSONException;
-import net.sf.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Map;
@@ -57,10 +57,10 @@ public class DifferentialClient {
     public JSONObject postComment(String revisionID, String message, boolean silent, String action) throws IOException,
             ConduitAPIException {
         JSONObject params = new JSONObject();
-        params.element("revision_id", revisionID)
-                .element("action", action)
-                .element("message", message)
-                .element("silent", silent);
+        params.put("revision_id", revisionID);
+        params.put("action", action);
+        params.put("message", message);
+        params.put("silent", silent);
 
         return this.callConduit("differential.createcomment", params);
     }
@@ -73,7 +73,7 @@ public class DifferentialClient {
      * @throws ConduitAPIException if any error is experienced talking to Conduit
      */
     public JSONObject fetchDiff() throws IOException, ConduitAPIException {
-        JSONObject params = new JSONObject().element("ids", new String[] {diffID});
+        JSONObject params = new JSONObject().put("ids", new String[] {diffID});
         JSONObject query = this.callConduit("differential.querydiffs", params);
         JSONObject response;
         try {
@@ -84,16 +84,18 @@ public class DifferentialClient {
                             e.getMessage(),
                             query.toString(2)));
         }
-        try {
-            return response.getJSONObject(diffID);
-        } catch (JSONException e) {
-            throw new ConduitAPIException(
-                    String.format("Unable to find '%s' key in 'result': (%s) %s",
-                            diffID,
-                            e.getMessage(),
-                            response.toString(2)));
-
+        JSONObject diff = response.optJSONObject(diffID);
+        if (diff == null) {
+            // Diff ID not found - return empty JSONObject
+            return new JSONObject();
         }
+        if (diff.length() == 0) {
+            throw new ConduitAPIException(
+                    String.format("Empty response for diff '%s': %s",
+                            diffID,
+                            response.toString(2)));
+        }
+        return diff;
     }
 
     /**
@@ -153,7 +155,7 @@ public class DifferentialClient {
         if (revisionID == null) {
             return "";
         }
-        JSONObject params = new JSONObject().element("revision_id", revisionID);
+        JSONObject params = new JSONObject().put("revision_id", revisionID);
         JSONObject query = callConduit("differential.getcommitmessage", params);
 
         // NOTE: When you run this with `arc call-conduit dfferential.getcommitmessage` (from the command-line),

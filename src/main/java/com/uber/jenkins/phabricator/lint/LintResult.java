@@ -22,7 +22,7 @@
 
 package com.uber.jenkins.phabricator.lint;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 /**
  * This currently mirrors the API format of Harbormaster lint messages
@@ -78,12 +78,12 @@ public class LintResult {
      */
     public JSONObject toHarbormaster() {
         return new JSONObject()
-                .element("name", name)
-                .element("code", code)
-                .element("severity", severity)
-                .element("path", path)
-                .element("line", line)
-                .element("char", charPosition)
-                .element("description", description);
+                .put("name", name)
+                .put("code", code)
+                .put("severity", severity)
+                .put("path", path)
+                .put("line", line)
+                .put("char", charPosition)
+                .put("description", description);
     }
 }

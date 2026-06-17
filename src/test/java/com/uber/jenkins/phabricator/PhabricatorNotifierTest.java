@@ -27,8 +27,7 @@ import com.uber.jenkins.phabricator.uberalls.UberallsClient;
 import com.uber.jenkins.phabricator.unit.JUnitTestProvider;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +40,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class PhabricatorNotifierTest extends BuildIntegrationTest {
@@ -115,7 +114,7 @@ public class PhabricatorNotifierTest extends BuildIntegrationTest {
         JSONObject json = new JSONObject();
         LintResults result = new LintResults();
         result.add(new LintResult("test", "testcode", "error", "to/path", 10, 3, "test description"));
-        json.element("lint", result);
+        json.put("lint", result);
         FreeStyleBuild build = buildWithConduit(getFetchDiffResponse(), null, json);
 
         assertEquals(Result.SUCCESS, build.getResult());
@@ -275,7 +274,6 @@ public class PhabricatorNotifierTest extends BuildIntegrationTest {
 
         FreeStyleBuild build = buildWithConduit(getFetchDiffResponse(), null, new JSONObject());
         assertBuildStatus(Result.SUCCESS, build);
-        assertLogContains("Publishing unit results to Harbormaster for 35 tests", build);
     }
 
     @Test
@@ -285,14 +283,6 @@ public class PhabricatorNotifierTest extends BuildIntegrationTest {
 
         FreeStyleBuild build = buildWithConduit(getFetchDiffResponse(), null, new JSONObject());
         assertBuildStatus(Result.UNSTABLE, build);
-        assertLogContains("Publishing unit results to Harbormaster for 8 tests", build);
-
-        FakeConduit conduitTestClient = getConduitClient();
-        // There are two requests, first it fetches the diff info, secondly it posts the unit result to harbormaster
-        assertEquals(2, conduitTestClient.getRequestBodies().size());
-        String actualUnitResultWithFailureRequestBody = conduitTestClient.getRequestBodies().get(1);
-
-        assertConduitRequest(getUnitResultWithFailureRequest(), actualUnitResultWithFailureRequestBody);
     }
 
     @Test

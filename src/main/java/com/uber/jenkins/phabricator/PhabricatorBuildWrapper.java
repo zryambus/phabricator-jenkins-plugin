@@ -36,6 +36,7 @@ import com.uber.jenkins.phabricator.utils.Logger;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.jenkinsci.Symbol;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -57,6 +58,7 @@ import hudson.model.Run;
 import hudson.tasks.BuildWrapper;
 import hudson.util.RunList;
 
+@Symbol("phabricator")
 public class PhabricatorBuildWrapper extends BuildWrapper {
 
     private static final String CONDUIT_TAG = "conduit";
@@ -164,6 +166,9 @@ public class PhabricatorBuildWrapper extends BuildWrapper {
         if (!CommonUtils.isBlank(phid)) {
             logger.info("harbormaster", "Sending Harbormaster BUILD_URL via PHID: " + phid);
             String buildUrl = environment.get("BUILD_URL");
+            if (CommonUtils.isBlank(buildUrl)) {
+                buildUrl = build.getUrl();
+            }
             Task.Result sendUriResult = new SendHarbormasterUriTask(logger, diffClient, phid, buildUrl).run();
 
             if (sendUriResult != Task.Result.SUCCESS) {

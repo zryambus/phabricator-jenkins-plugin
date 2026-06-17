@@ -23,8 +23,7 @@ package com.uber.jenkins.phabricator.conduit;
 import com.uber.jenkins.phabricator.conduit.HarbormasterClient.MessageType;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
-
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,8 +31,8 @@ import java.io.IOException;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
 
 public class DifferentialClientTest {
@@ -78,7 +77,7 @@ public class DifferentialClientTest {
     @Test(expected = ConduitAPIException.class)
     public void testFetchDiffWithNoDiff() throws Exception {
         JSONObject noDiff = new JSONObject();
-        noDiff.put("result", null);
+        noDiff.put("result", (JSONObject)null);
         mockConduitResponse(differentialClient, noDiff);
 
         differentialClient.fetchDiff();

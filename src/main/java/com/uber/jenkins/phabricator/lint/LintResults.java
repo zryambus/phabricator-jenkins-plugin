@@ -22,7 +22,7 @@
 
 package com.uber.jenkins.phabricator.lint;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;

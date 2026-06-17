@@ -3,7 +3,7 @@ package com.uber.jenkins.phabricator.uberalls;
 import com.uber.jenkins.phabricator.coverage.CodeCoverageMetrics;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;

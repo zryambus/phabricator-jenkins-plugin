@@ -23,7 +23,7 @@ package com.uber.jenkins.phabricator;
 import com.google.common.collect.Lists;
 import com.uber.jenkins.phabricator.utils.TestUtils;
 
-import net.sf.json.JSONObject;
+import org.json.JSONObject;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -107,7 +107,7 @@ public class PhabricatorBuildWrapperTest extends BuildIntegrationTest {
     @Test
     public void testBuildValidSuccess() throws Exception {
         JSONObject commentResponse = new JSONObject();
-        FreeStyleBuild build = buildWithConduit(getFetchDiffResponse(), commentResponse, null, true);
+        FreeStyleBuild build = buildWithConduit(getFetchDiffResponse(), commentResponse, (JSONObject)null, true);
 
         assertEquals(Result.SUCCESS, build.getResult());
         PhabricatorPostbuildSummaryAction action = build.getAction(PhabricatorPostbuildSummaryAction.class);

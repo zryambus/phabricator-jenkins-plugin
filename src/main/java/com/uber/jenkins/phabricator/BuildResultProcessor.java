@@ -38,8 +38,8 @@ import com.uber.jenkins.phabricator.unit.UnitTestProvider;
 import com.uber.jenkins.phabricator.utils.CommonUtils;
 import com.uber.jenkins.phabricator.utils.Logger;
 
-import net.sf.json.JSONException;
-import net.sf.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -165,7 +165,7 @@ public class BuildResultProcessor {
                 while ((line = reader.readLine()) != null) {
                     lint += line;
                     try {
-                        JSONObject json = JSONObject.fromObject(lint);
+                        JSONObject json = new JSONObject(lint);
                         lintResults.add(LintResult.fromJsonObject(json));
                         lint = "";
                     } catch (JSONException e) {
