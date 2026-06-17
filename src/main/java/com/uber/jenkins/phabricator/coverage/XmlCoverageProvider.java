@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -62,22 +62,25 @@ public class XmlCoverageProvider extends CoverageProvider {
         this.xmlCoverageHandlers = Arrays.asList(new CoberturaXmlCoverageHandler(),
                 new CloverXmlCoverageHandler(),
                 new JacocoXmlCoverageHandler());
+        db = createSecureDocumentBuilder();
+        cc = new CoverageCounters();
+    }
 
+    static DocumentBuilder createSecureDocumentBuilder() {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setValidating(false);
         dbf.setNamespaceAware(true);
-        DocumentBuilder localDb = null;
         try {
             dbf.setFeature("http://xml.org/sax/features/namespaces", false);
             dbf.setFeature("http://xml.org/sax/features/validation", false);
             dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
             dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-            localDb = dbf.newDocumentBuilder();
+            dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            return dbf.newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        db = localDb;
-        cc = new CoverageCounters();
     }
 
     @Override

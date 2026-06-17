@@ -1,16 +1,25 @@
 package com.uber.jenkins.phabricator.coverage;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.w3c.dom.Document;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,6 +41,7 @@ public class XmlCoverageProviderTest {
     private static final String TEST_COVERAGE_FILE_3 = "go-torch-coverage3.xml";
     private static final String TEST_COVERAGE_FILE_MULTIPLE_INCLUDE = "multiple-include-coverage.xml";
     private static final String TEST_COVERAGE_FILE_INVALID = "invalid-coverage.xml";
+    private static final String XXE_MARKER = "XXE_SECRET_MARKER_42";
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -149,6 +159,216 @@ public class XmlCoverageProviderTest {
     public void invalidCoverage() {
         CoverageProvider provider = new XmlCoverageProvider(getResources(TEST_COVERAGE_FILE_INVALID));
         provider.getLineCoverage();
+    }
+
+    @Test
+    public void xxeExternalGeneralEntityBlocked() throws Exception {
+        File secretFile = tmp.newFile("secret.txt");
+        FileUtils.write(secretFile, XXE_MARKER, StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY xxe SYSTEM \"file://" + secretFile.getAbsolutePath() + "\">\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "  &xxe;\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-external-entity.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("External general entity content must not be resolved",
+                parsedXml.contains(XXE_MARKER));
+    }
+
+    @Test
+    public void xxeExternalParameterEntityBlocked() throws Exception {
+        File secretFile = tmp.newFile("secret_param.txt");
+        FileUtils.write(secretFile, XXE_MARKER, StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY % xxe SYSTEM \"file://" + secretFile.getAbsolutePath() + "\">\n" +
+                "  %xxe;\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-param-entity.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("External parameter entity content must not be resolved",
+                parsedXml.contains(XXE_MARKER));
+    }
+
+    @Test
+    public void xxeSSRFAttackBlocked() throws Exception {
+        File secretFile = tmp.newFile("ssrf_secret.txt");
+        FileUtils.write(secretFile, XXE_MARKER, StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY xxe SYSTEM \"file://" + secretFile.getAbsolutePath() + "\">\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "  &xxe;\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-ssrf.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("SSRF entity content must not be resolved",
+                parsedXml.contains(XXE_MARKER));
+    }
+
+    @Test
+    public void xxeExternalDTDLoadingBlocked() throws Exception {
+        File secretFile = tmp.newFile("dtd_secret.txt");
+        FileUtils.write(secretFile, XXE_MARKER, StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY xxe SYSTEM \"file://" + secretFile.getAbsolutePath() + "\">\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "  &xxe;\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-external-dtd.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("External DTD entity content must not be resolved",
+                parsedXml.contains(XXE_MARKER));
+    }
+
+    @Test
+    public void xxeLocalFileExtractionBlocked() throws Exception {
+        File secretFile = tmp.newFile("local_secret.txt");
+        FileUtils.write(secretFile, XXE_MARKER, StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY xxe SYSTEM \"file://" + secretFile.getAbsolutePath() + "\">\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "  &xxe;\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-local-file.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("Local file content must not be extracted via XXE",
+                parsedXml.contains(XXE_MARKER));
+    }
+
+    @Test
+    public void xxeNestedEntityBlocked() throws Exception {
+        File secretFile1 = tmp.newFile("nested_secret1.txt");
+        FileUtils.write(secretFile1, XXE_MARKER, StandardCharsets.UTF_8);
+        File secretFile2 = tmp.newFile("nested_secret2.txt");
+        FileUtils.write(secretFile2, "ANOTHER_SECRET_99", StandardCharsets.UTF_8);
+
+        String maliciousXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<!DOCTYPE foo [\n" +
+                "  <!ENTITY xxe1 SYSTEM \"file://" + secretFile1.getAbsolutePath() + "\">\n" +
+                "  <!ENTITY xxe2 SYSTEM \"file://" + secretFile2.getAbsolutePath() + "\">\n" +
+                "  <!ENTITY combined \"&xxe1;&xxe2;\">\n" +
+                "]>\n" +
+                "<coverage>\n" +
+                "  <packages>\n" +
+                "    <package name=\"test\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "      <classes>\n" +
+                "        <class name=\"Test\" filename=\"Test.java\" line-rate=\"1.0\" branch-rate=\"1.0\">\n" +
+                "          <lines>\n" +
+                "            <line number=\"1\" hits=\"1\"/>\n" +
+                "          </lines>\n" +
+                "        </class>\n" +
+                "      </classes>\n" +
+                "    </package>\n" +
+                "  </packages>\n" +
+                "  &combined;\n" +
+                "</coverage>";
+
+        File xxeFile = writeTempFile("xxe-nested.xml", maliciousXml);
+        String parsedXml = parseWithPluginParser(xxeFile);
+        assertFalse("Nested entity content must not be resolved",
+                parsedXml.contains(XXE_MARKER));
+        assertFalse("Nested entity content must not be resolved",
+                parsedXml.contains("ANOTHER_SECRET_99"));
+    }
+
+    private String parseWithPluginParser(File xmlFile) throws Exception {
+        DocumentBuilder db = XmlCoverageProvider.createSecureDocumentBuilder();
+        Document doc = db.parse(xmlFile);
+
+        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        StringWriter writer = new StringWriter();
+        transformer.transform(new DOMSource(doc), new StreamResult(writer));
+        return writer.toString();
+    }
+
+    private File writeTempFile(String name, String content) throws IOException {
+        File file = tmp.newFile(name);
+        try (OutputStream out = new FileOutputStream(file)) {
+            IOUtils.write(content, out, StandardCharsets.UTF_8);
+        }
+        return file;
     }
 
     private Set<File> getResources(String... resources) {
