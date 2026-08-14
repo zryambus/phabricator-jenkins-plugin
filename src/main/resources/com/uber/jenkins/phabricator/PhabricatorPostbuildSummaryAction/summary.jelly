@@ -6,7 +6,7 @@
         <div class="jenkins-card__title">
           Phabricator Differential
         </div>
-        <div>
+        <div class="jenkins-!-padding-1">
           This was a build of <a class="jenkins-link--with-icon" href="${it.url}">${it.revisionID}</a>
           by ${it.authorName}
 
@@ -16,7 +16,7 @@
         </div>
 
         <j:if test="${it.commitMessage != null}">
-          <pre class="jenkins-card__teaser">${it.commitMessage}</pre>
+          <pre class="jenkins-!-margin-0">${it.commitMessage}</pre>
         </j:if>
       </div>
     </div>
