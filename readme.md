@@ -1,36 +1,57 @@
-> **_NOTE:_**  This project is now **archived**.  The original maintainers from Uber have moved on to new opportunities.  
->
-> If you or your organization is interested in becoming the project owner, please contact us at ospo@uber.com
-
-# Phabricator-Jenkins Plugin [![Build Status](https://travis-ci.org/uber/phabricator-jenkins-plugin.svg?branch=master)](https://travis-ci.org/uber/phabricator-jenkins-plugin) [![Coverage Status](https://coveralls.io/repos/uber/phabricator-jenkins-plugin/badge.svg?branch=master&service=github)](https://coveralls.io/github/uber/phabricator-jenkins-plugin?branch=master)
+# Phabricator-Jenkins Plugin [![Build and Release](https://github.com/zryambus/phabricator-jenkins-plugin/actions/workflows/release.yml/badge.svg)](https://github.com/zryambus/phabricator-jenkins-plugin/actions/workflows/release.yml) [![Latest release](https://img.shields.io/github/v/release/zryambus/phabricator-jenkins-plugin)](https://github.com/zryambus/phabricator-jenkins-plugin/releases/latest)
 
 This plugin provides [Phabricator][] integration with [Jenkins][]. It allows Jenkins to
-report build status and coverage information over Harbormaster (or via comments
+report build status, unit test, lint and coverage information over Harbormaster (or via comments
 if Harbormaster is not enabled).
 
-[Phabricator]: http://phabricator.org/
-[Jenkins]: https://jenkins-ci.org/
+> **_NOTE:_** This is a maintained fork of the archived [uber-archive/phabricator-jenkins-plugin](https://github.com/uber-archive/phabricator-jenkins-plugin).
+> It tracks current Jenkins LTS releases, adds Pipeline support and uses the
+> [Coverage plugin][] for coverage data instead of the retired Cobertura/JaCoCo plugins.
+
+[Phabricator]: https://www.phacility.com/phabricator/
+[Jenkins]: https://www.jenkins.io/
+[Coverage plugin]: https://plugins.jenkins.io/coverage/
 
 Table of Contents
 =================
 * [Requirements](#requirements)
+* [Installation](#installation)
 * [Configuration](#configuration)
   * [Phabricator Configuration](#phabricator-configuration)
   * [Jenkins Setup](#jenkins-setup)
 * [Usage](#usage)
   * [Jenkins Job](#jenkins-job)
+  * [Pipeline](#pipeline)
+  * [Coverage](#coverage)
   * [Harbormaster](#harbormaster)
   * [Herald](#herald)
 * [Advanced Usage](docs/advanced.md)
 * [Test Your Configuration](#test-your-configuration)
 * [Development](#development)
-* [Testing](#testing)
+* [Releasing](#releasing)
 
 
 Requirements
 =============
 
+* Jenkins **2.580.2** (LTS) or newer.
+* Java **21** or newer on the Jenkins controller and agents.
+* [Credentials plugin](https://plugins.jenkins.io/credentials/) (installed with Jenkins by default).
+* Optional plugins:
+  * [Pipeline](https://plugins.jenkins.io/workflow-aggregator/) — to use the `phabricatorStep` step.
+  * [JUnit](https://plugins.jenkins.io/junit/) — to report unit test results to Harbormaster.
+  * [Coverage][Coverage plugin] — to report coverage to Phabricator and Uberalls.
 * [Arcanist](https://github.com/phacility/arcanist) is installed on the Jenkins nodes where the tests will be run (e.g. not just the master) the `arc` binary is in `$PATH` or configured explicitly in the global settings.
+
+Installation
+============
+
+The plugin is not published to the Jenkins update center. Install it manually:
+
+1. Download `phabricator-plugin.hpi` from the [latest release](https://github.com/zryambus/phabricator-jenkins-plugin/releases/latest).
+2. In Jenkins, go to **Manage Jenkins** → **Plugins** → **Advanced settings**.
+3. Under **Deploy Plugin**, choose the downloaded `.hpi` file and click **Deploy**.
+4. Restart Jenkins.
 
 Configuration
 =============
@@ -86,6 +107,56 @@ Jenkins Job
     2. If you want to post additional text to Phabricator other than "Pass" and "Fail", select the **Add Custom Comment** checkbox. Then create a `.phabricator-comment` file and enter the text you want Jenkins to add to the build status comment in Phabricator.
 ![Add post-build action](/docs/configure-job-post-build.png)
 
+Pipeline
+--------
+
+In Pipeline jobs, use the `phabricatorStep` step (shown as **Post to Phabricator** in the
+Snippet Generator) instead of the post-build action. The job still needs the `DIFF_ID` and
+`PHID` parameters. A build without a failure is reported as passed.
+
+```groovy
+pipeline {
+    agent any
+    parameters {
+        string(name: 'DIFF_ID', defaultValue: '')
+        string(name: 'PHID', defaultValue: '')
+    }
+    stages {
+        stage('Test') {
+            steps {
+                sh './run-tests.sh'
+            }
+        }
+    }
+    post {
+        always {
+            phabricatorStep commentOnSuccess: true,
+                            commentWithConsoleLinkOnFailure: true
+        }
+    }
+}
+```
+
+Supported options: `commentOnSuccess`, `commentWithConsoleLinkOnFailure`, `customComment`,
+`commentFile`, `commentSize`, `preserveFormatting`, `uberallsEnabled`, `coverageCheck`,
+`coverageThreshold`, `minCoverageThreshold`, `coverageReportPattern`, `processLint`,
+`lintFile`, `lintFileSize`, `sendPartialResults`.
+
+The **Apply Phabricator Differential** build environment is available only in Freestyle jobs.
+In Pipeline jobs, apply the patch yourself, for example with `arc patch --diff "$DIFF_ID"`.
+
+Coverage
+--------
+
+Coverage is read from the [Coverage plugin][]. Publish your reports with the plugin
+(the `recordCoverage` step in Pipeline, or the **Record code coverage results** post-build
+action) before the Phabricator step runs. The line, branch, method, class, file and package
+metrics are then sent to Phabricator and, if enabled, to [Uberalls](https://github.com/uber/uberalls).
+
+If the Coverage plugin is not installed or the build has no coverage results, the plugin
+falls back to parsing Cobertura, JaCoCo and Clover XML reports from the workspace that match
+**Coverage Report Pattern** (default: `**/coverage*.xml, **/cobertura*.xml, **/jacoco*.xml`).
+
 Harbormaster
 ------------
 
@@ -103,7 +174,7 @@ With Phabricator, Jenkins, and your Jenkins jobs configured it's time to configu
 
 	If your Jenkins instance is exposed to the internet, make sure to install the [Build Token Root Plugin][] and fill in the `token` parameter.
 
-[Build Token Root Plugin]: https://wiki.jenkins-ci.org/display/JENKINS/Build+Token+Root+Plugin
+[Build Token Root Plugin]: https://plugins.jenkins.io/build-token-root/
 
 8. Click the **When Complete** dropdown menu and select **Wait For Message**.
 9. Click the **Create Build Step** button.
@@ -144,24 +215,36 @@ Now that you have build status and optionally coverage data set up, check out so
 Development
 -----------
 
-Use gradle to perform various development related tasks. [More info](https://wiki.jenkins-ci.org/display/JENKINS/Gradle+JPI+Plugin)
+The project is built with Maven and requires JDK 21.
 
-
-Testing
--------
-
-Start up Jenkins with the plugin installed:
+Build the plugin and run the tests:
 ```bash
-./gradlew server
+mvn verify
 ```
 
-Open your browser to your [local instance](http://localhost:8080).
+The plugin is written to `target/phabricator-plugin.hpi`.
+
+Start a local Jenkins with the plugin installed:
+```bash
+mvn hpi:run
+```
+
+Open your browser to your [local instance](http://localhost:8080/jenkins).
+
+Releasing
+---------
+
+1. Update the plugin version in `pom.xml` and commit it.
+2. Push a tag `vX.Y.Z` (for example `v2.4.0`).
+
+The [Build and Release](.github/workflows/release.yml) workflow builds the plugin, runs the tests
+and publishes a GitHub release with the `.hpi` attached.
 
 Pull Requests
 -------------
 
 Please open all pull requests and issues against
-https://github.com/uber/phabricator-jenkins-plugin.
+https://github.com/zryambus/phabricator-jenkins-plugin.
 
 License
 -------
