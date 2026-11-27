@@ -34,7 +34,7 @@ Table of Contents
 Requirements
 =============
 
-* Jenkins **2.580.2** (LTS) or newer.
+* Jenkins **2.580.3** (LTS) or newer.
 * Java **21** or newer on the Jenkins controller and agents.
 * [Credentials plugin](https://plugins.jenkins.io/credentials/) (installed with Jenkins by default).
 * Optional plugins:
