@@ -235,7 +235,7 @@ Releasing
 ---------
 
 1. Update the plugin version in `pom.xml` and commit it.
-2. Push a tag `vX.Y.Z` (for example `v2.4.0`).
+2. Push a tag `vX.Y.Z` (for example `v2.4.1`).
 
 The [Build and Release](.github/workflows/release.yml) workflow builds the plugin, runs the tests
 and publishes a GitHub release with the `.hpi` attached.
